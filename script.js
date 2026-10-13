@@ -2,8 +2,9 @@
 
 /* =====================================================
    Navalha & Brilho — script principal (v6, COMPLETO)
-   Blindagem: toda ligação de evento verifica se o elemento
-   existe; produtos renderizam primeiro na inicialização.
+   Blindagem: toda ligação de evento e todo acesso a
+   elemento verifica existência antes de usar. Nenhum
+   elemento ausente derruba a inicialização.
    ===================================================== */
 
 const CHAVE_CARRINHO     = 'nb_carrinho_v1';
@@ -58,7 +59,7 @@ const $  = (sel) => document.querySelector(sel);
 const el = (id)  => document.getElementById(id);
 const brl = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' });
 
-// Anexa evento somente se o elemento existir — evita quebrar a inicialização
+// Anexa evento somente se o elemento existir — nunca derruba a inicialização
 function bind(id, evento, fn) {
   const e = el(id);
   if (e) e.addEventListener(evento, fn);
@@ -80,9 +81,11 @@ function gravarLS(chave, valor) {
 
 function codigoAleatorio(p) { return p + '-' + Math.random().toString(36).slice(2, 6).toUpperCase(); }
 
-function abrirOverlay(id)   { const e = el(id); if (e) e.style.display = 'flex'; }
-function fecharOverlay(id)  { const e = el(id); if (e) e.style.display = 'none'; }
-function mostrar(id, sim)   { const e = el(id); if (e) e.style.display = sim ? 'block' : 'none'; }
+/* ---------- Overlays por style.display inline ---------- */
+
+function abrirOverlay(id)  { const e = el(id); if (e) e.style.display = 'flex'; }
+function fecharOverlay(id) { const e = el(id); if (e) e.style.display = 'none'; }
+function mostrar(id, sim)  { const e = el(id); if (e) e.style.display = sim ? 'block' : 'none'; }
 
 let temporizadorToast = null;
 function mostrarToast(msg) {
@@ -589,7 +592,7 @@ function alternarAba(agendaAtiva) {
 document.addEventListener('DOMContentLoaded', () => {
   const ano = el('anoAtual'); if (ano) ano.textContent = String(new Date().getFullYear());
 
-  // MARKETPLACE PRIMEIRO — renderiza antes de qualquer outra configuração
+  // Marketplace primeiro — renderiza antes de qualquer configuração
   filtrarProdutos();
   renderizarServicos();
   renderizarEquipe();
