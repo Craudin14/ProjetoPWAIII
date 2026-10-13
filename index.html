@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Navalha & Brilho — barbearia e salão de beleza. Agende serviços e explore produtos. Projeto acadêmico de PWA.">
+  <meta name="theme-color" content="#1b1f2a">
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" href="icon-192.png">
+  <title>Navalha &amp; Brilho — Barbearia e Salão</title>
+</head>
+<body>
+
+  <!-- CABEÇALHO -->
+  <header class="cabecalho">
+    <div class="container cabecalho-interno">
+      <a href="#inicio" class="logo" aria-label="Navalha e Brilho, página inicial">
+        <span class="logo-n1">NAVALHA</span><span class="logo-e">&amp;</span><span class="logo-n2">BRILHO</span>
+      </a>
+      <button id="btnMenu" class="btn-menu" aria-expanded="false" aria-controls="siteNav" aria-label="Abrir menu de navegação">☰</button>
+      <nav id="siteNav" class="navegacao" aria-label="Navegação principal">
+        <a href="#inicio">Início</a>
+        <a href="#servicos">Serviços</a>
+        <a href="#produtos">Produtos</a>
+        <a href="#agendamento">Agendamento</a>
+        <a href="#contato">Contato</a>
+      </nav>
+      <button id="btnCarrinho" class="btn-carrinho" aria-label="Abrir carrinho de compras">
+        🛒 <span id="badgeCarrinho" class="badge-carrinho">0</span>
+      </button>
+    </div>
+  </header>
+
+  <main>
+    <!-- DESTAQUE -->
+    <section id="inicio" class="destaque">
+      <div class="container">
+        <p class="destaque-tag">Barbearia &amp; Salão</p>
+        <h1>Estilo do cabelo à barba,<br>do corte ao brilho.</h1>
+        <p class="destaque-texto">Agende seu horário com nossos profissionais ou leve para casa os produtos que usamos no salão.</p>
+        <div class="destaque-acoes">
+          <a href="#agendamento" class="btn btn-primario">Agendar um serviço</a>
+          <a href="#produtos" class="btn btn-secundario">Explorar produtos</a>
+        </div>
+      </div>
+    </section>
+
+    <!-- SERVIÇOS -->
+    <section id="servicos" class="secao">
+      <div class="container">
+        <h2>Nossos serviços</h2>
+        <p class="secao-sub">Valores e durações de demonstração — edite livremente no arquivo <code>script.js</code>.</p>
+        <div id="listaServicos" class="grade grade-servicos"></div>
+      </div>
+    </section>
+
+    <!-- PRODUTOS -->
+    <section id="produtos" class="secao secao-alt">
+      <div class="container">
+        <h2>Mini marketplace</h2>
+        <p class="secao-sub">Produtos fictícios de demonstração. Nenhuma compra real é processada.</p>
+        <div class="controles-produtos">
+          <label class="rotulo-busca" for="buscaProduto">Buscar produto
+            <input type="search" id="buscaProduto" placeholder="Ex.: pomada, shampoo…" autocomplete="off">
+          </label>
+          <label class="rotulo-busca" for="filtroCategoria">Categoria
+            <select id="filtroCategoria">
+              <option value="todos">Todas</option>
+              <option value="cabelo">Cabelo</option>
+              <option value="barba">Barba</option>
+              <option value="acessorios">Acessórios</option>
+            </select>
+          </label>
+        </div>
+        <div id="gradeProdutos" class="grade grade-produtos"></div>
+        <p id="vazioProdutos" class="estado-vazio" hidden>Nenhum produto encontrado com esses filtros. Tente outro termo ou categoria.</p>
+      </div>
+    </section>
+
+    <!-- AGENDAMENTO -->
+    <section id="agendamento" class="secao">
+      <div class="container grade-agendamento">
+        <div>
+          <h2>Agende seu horário</h2>
+          <p class="secao-sub">Demonstração sem servidor: os agendamentos ficam salvos apenas no <strong>localStorage</strong> deste navegador.</p>
+          <form id="formAgendamento" novalidate>
+            <p id="erroAgendamento" class="mensagem-erro" role="alert" hidden></p>
+
+            <label for="selServico">Serviço *
+              <select id="selServico" required>
+                <option value="">Selecione um serviço</option>
+              </select>
+            </label>
+
+            <label for="selProfissional">Profissional *
+              <select id="selProfissional" required>
+                <option value="">Selecione um profissional</option>
+                <option value="Ricardo Alves">Ricardo Alves — barbeiro</option>
+                <option value="Marina Costa">Marina Costa — cabeleireira</option>
+                <option value="Bruno Dias">Bruno Dias — barbeiro</option>
+                <option value="Camila Souza">Camila Souza — colorista</option>
+              </select>
+            </label>
+
+            <div class="linha-form">
+              <label for="inpData">Data *
+                <input type="date" id="inpData" required>
+              </label>
+              <label for="selHorario">Horário *
+                <select id="selHorario" required>
+                  <option value="">Selecione</option>
+                  <option>09:00</option><option>10:00</option><option>11:00</option>
+                  <option>12:00</option><option>14:00</option><option>15:00</option>
+                  <option>16:00</option><option>17:00</option><option>18:00</option><option>19:00</option>
+                </select>
+              </label>
+            </div>
+
+            <div class="linha-form">
+              <label for="inpNome">Seu nome *
+                <input type="text" id="inpNome" maxlength="60" placeholder="Nome e sobrenome" required>
+              </label>
+              <label for="inpTelefone">Telefone (opcional)
+                <input type="tel" id="inpTelefone" maxlength="20" placeholder="(00) 00000-0000">
+              </label>
+            </div>
+
+            <label for="inpObs">Observações (opcional)
+              <textarea id="inpObs" rows="3" maxlength="300" placeholder="Ex.: preferência de corte, alergias…"></textarea>
+            </label>
+
+            <button type="submit" class="btn btn-primario">Confirmar agendamento</button>
+          </form>
+
+          <!-- Confirmação -->
+          <div id="confirmacaoAgendamento" class="caixa-confirmacao" role="status" hidden>
+            <h3>✅ Agendamento registrado (demonstração)</h3>
+            <p id="detalheAgendamento"></p>
+            <p class="nota-demo">Este agendamento <strong>não foi enviado a nenhum servidor</strong> — está salvo apenas neste navegador.</p>
+          </div>
+        </div>
+
+        <aside>
+          <h3>Seus agendamentos salvos</h3>
+          <p class="secao-sub">Consulte ou cancele os registros guardados neste navegador.</p>
+          <ul id="listaAgendamentos" class="lista-agendamentos"></ul>
+          <p id="vazioAgendamentos" class="estado-vazio" hidden>Você ainda não tem agendamentos salvos.</p>
+        </aside>
+      </div>
+    </section>
+
+    <!-- CONTATO -->
+    <section id="contato" class="secao secao-alt">
+      <div class="container">
+        <h2>Contato e horários</h2>
+        <div class="grade grade-contato">
+          <div>
+            <h3>Endereço (fictício)</h3>
+            <p>Rua das Tesouras, 123 — Centro<br>São Paulo/SP — CEP 00000-000</p>
+          </div>
+          <div>
+            <h3>Telefones (fictícios)</h3>
+            <p>(11) 90000-0000 (WhatsApp)<br>(11) 3000-0000 (fixo)</p>
+          </div>
+          <div>
+            <h3>Horário de funcionamento</h3>
+            <p>Seg. a sex.: 9h às 20h<br>Sábado: 9h às 18h<br>Domingo: fechado</p>
+          </div>
+        </div>
+        <p class="nota-demo">⚠️ Todos os dados desta página — profissionais, preços, produtos, endereço e contatos — são <strong>exemplos editáveis</strong> para fins acadêmicos. Não utilize dados pessoais reais.</p>
+      </div>
+    </section>
+  </main>
+
+  <!-- RODAPÉ -->
+  <footer class="rodape">
+    <div class="container grade-rodape">
+      <div>
+        <p class="logo logo-rodape"><span class="logo-n1">NAVALHA</span><span class="logo-e">&amp;</span><span class="logo-n2">BRILHO</span></p>
+        <p>Barbearia e salão de beleza — projeto acadêmico de PWA. Conteúdo 100% fictício.</p>
+      </div>
+      <nav aria-label="Links do rodapé">
+        <h3>Navegação</h3>
+        <a href="#inicio">Início</a>
+        <a href="#servicos">Serviços</a>
+        <a href="#produtos">Produtos</a>
+        <a href="#agendamento">Agendamento</a>
+        <a href="#contato">Contato</a>
+      </nav>
+      <div>
+        <h3>Contato</h3>
+        <p>(11) 90000-0000<br>contato@exemplo-ficticio.com</p>
+      </div>
+    </div>
+    <p class="rodape-final">© <span id="anoAtual">2026</span> Navalha &amp; Brilho — trabalho acadêmico.</p>
+  </footer>
+
+  <!-- PAINEL DO CARRINHO -->
+  <aside id="painelCarrinho" class="painel-carrinho" aria-label="Carrinho de compras" hidden>
+    <div class="painel-cabecalho">
+      <h2>Seu carrinho</h2>
+      <button id="fecharCarrinho" class="btn-fechar" aria-label="Fechar carrinho">✕</button>
+    </div>
+    <ul id="itensCarrinho" class="itens-carrinho"></ul>
+    <p id="vazioCarrinho" class="estado-vazio">Seu carrinho está vazio. Explore os produtos!</p>
+    <div class="painel-rodape">
+      <p class="subtotal">Subtotal: <strong id="subtotal">R$ 0,00</strong></p>
+      <div class="painel-acoes">
+        <button id="btnLimparCarrinho" class="btn btn-secundario">Limpar carrinho</button>
+        <button id="btnFinalizar" class="btn btn-primario">Finalizar pedido</button>
+      </div>
+    </div>
+  </aside>
+
+  <!-- MODAL DE PEDIDO SIMULADO -->
+  <div id="modalPedido" class="modal" role="dialog" aria-modal="true" aria-labelledby="tituloModal" hidden>
+    <div class="modal-caixa">
+      <h2 id="tituloModal">Pedido registrado (demonstração)</h2>
+      <p>Pedido simulado <strong id="codigoPedido">PED-0000</strong> criado localmente.</p>
+      <p class="nota-demo">Este é um fluxo demonstrativo: <strong>nenhuma compra foi processada e nenhum pagamento foi feito</strong>.</p>
+      <button id="fecharModal" class="btn btn-primario">Entendi</button>
+    </div>
+  </div>
+
+  <!-- TOAST -->
+  <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+
+  <script src="script.js"></script>
+</body>
+</html>
