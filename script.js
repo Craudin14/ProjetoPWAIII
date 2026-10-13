@@ -1,9 +1,9 @@
 'use strict';
 
 /* =====================================================
-   Navalha & Brilho — script principal (v2, COMPLETO)
-   Dados 100% fictícios e editáveis. Sem backend:
-   carrinho, cupom, agendamentos e pedidos vivem no localStorage.
+   Navalha & Brilho — script principal (v5, COMPLETO)
+   Visibilidade dos overlays controlada por style.display
+   inline — imune a CSS antigo em cache.
    ===================================================== */
 
 const CHAVE_CARRINHO     = 'nb_carrinho_v1';
@@ -11,8 +11,6 @@ const CHAVE_AGENDAMENTOS = 'nb_agendamentos_v1';
 const CHAVE_PEDIDOS      = 'nb_pedidos_v1';
 const CHAVE_TEMA         = 'nb_tema_v1';
 const CHAVE_CUPOM        = 'nb_cupom_v1';
-
-/* ---------- Dados de demonstração (edite livremente) ---------- */
 
 const SERVICOS = [
   { id: 'corte',      nome: 'Corte Masculino', emoji: '✂️', duracao: 40,  preco: 45,  desc: 'Corte clássico ou moderno com acabamento na navalha.', detalhe: 'Inclui consulta de visagismo, lavagem, corte com tesoura e máquina, acabamento na navalha e finalização com pomada.' },
@@ -51,7 +49,7 @@ const DEPOIMENTOS = [
   { texto: 'Compro os produtos no site desde a primeira visita. A pomada é a mesma que usam no salão, vale cada centavo.', autor: 'Pedro H.' }
 ];
 
-const CUPONS = { BEMVINDO10: 10, NAVALHA5: 5 }; // código → percentual de desconto
+const CUPONS = { BEMVINDO10: 10, NAVALHA5: 5 };
 const HORARIOS_BASE = ['09:00', '10:00', '11:00', '12:00', '14:00', '15:00', '16:00', '17:00', '18:00', '19:00'];
 
 /* ---------- Utilitários ---------- */
@@ -81,20 +79,29 @@ function codigoAleatorio(prefixo) {
   return prefixo + '-' + Math.random().toString(36).slice(2, 6).toUpperCase();
 }
 
+/* ---------- Overlays: controle direto por style.display ---------- */
+
+function abrirOverlay(id) { $(id).style.display = 'flex'; }
+function fecharOverlay(id) { $(id).style.display = 'none'; }
+
+function mostrarElemento(id, mostrar) {
+  $(id).style.display = mostrar ? 'block' : 'none';
+}
+
 let temporizadorToast = null;
 function mostrarToast(mensagem) {
   const toast = $('#toast');
   toast.textContent = mensagem;
-  toast.hidden = false;
+  toast.style.display = 'block';
   clearTimeout(temporizadorToast);
-  temporizadorToast = setTimeout(() => { toast.hidden = true; }, 3000);
+  temporizadorToast = setTimeout(() => { toast.style.display = 'none'; }, 3000);
 }
 
 function marcarInvalido(seletor, invalido) {
   $(seletor).classList.toggle('campo-invalido', invalido);
 }
 
-/* ---------- Service Worker (registro tolerante a falhas) ---------- */
+/* ---------- Service Worker ---------- */
 
 function registrarServiceWorker() {
   if (!('serviceWorker' in navigator)) return;
@@ -103,7 +110,7 @@ function registrarServiceWorker() {
     .catch((erro) => console.warn('Service Worker não registrado (o site continua funcionando):', erro));
 }
 
-/* ---------- Cabeçalho: menu, tema, conexão, instalação ---------- */
+/* ---------- Cabeçalho ---------- */
 
 function configurarMenu() {
   const btn = $('#btnMenu');
@@ -138,7 +145,7 @@ function atualizarIconeTema() {
 
 function configurarConexao() {
   const banner = $('#bannerConexao');
-  const atualizar = () => { banner.hidden = navigator.onLine; };
+  const atualizar = () => { banner.style.display = navigator.onLine ? 'none' : 'block'; };
   window.addEventListener('online', atualizar);
   window.addEventListener('offline', atualizar);
   atualizar();
@@ -149,14 +156,14 @@ function configurarInstalacao() {
   window.addEventListener('beforeinstallprompt', (e) => {
     e.preventDefault();
     eventoInstalacao = e;
-    $('#btnInstalar').hidden = false;
+    $('#btnInstalar').style.display = 'inline-block';
   });
   $('#btnInstalar').addEventListener('click', async () => {
     if (!eventoInstalacao) return;
     eventoInstalacao.prompt();
     await eventoInstalacao.userChoice;
     eventoInstalacao = null;
-    $('#btnInstalar').hidden = true;
+    $('#btnInstalar').style.display = 'none';
   });
 }
 
@@ -200,7 +207,7 @@ function abrirModalServico(id) {
     <p><strong>Duração:</strong> ${s.duracao} minutos</p>
     <p><strong>Preço:</strong> ${brl.format(s.preco)}</p>
   `;
-  $('#modalServico').hidden = false;
+  abrirOverlay('#modalServico');
   $('#fecharModalServico').focus();
 }
 
@@ -217,7 +224,7 @@ function renderizarEquipe() {
   `).join('');
 }
 
-/* ---------- Depoimentos (carrossel) ---------- */
+/* ---------- Depoimentos ---------- */
 
 let depoIndice = 0;
 
@@ -242,7 +249,7 @@ function configurarCarrossel() {
   });
 }
 
-/* ---------- Produtos: busca, filtro e ordenação ---------- */
+/* ---------- Produtos ---------- */
 
 function filtrarProdutos() {
   const termo = $('#buscaProduto').value.trim().toLowerCase();
@@ -260,7 +267,7 @@ function filtrarProdutos() {
   if (ordem === 'preco-desc') filtrados.sort((a, b) => b.preco - a.preco);
 
   const grade = $('#gradeProdutos');
-  $('#vazioProdutos').hidden = filtrados.length > 0;
+  mostrarElemento('vazioProdutos', filtrados.length === 0);
 
   grade.innerHTML = filtrados.map((p) => `
     <article class="card">
@@ -282,10 +289,10 @@ function filtrarProdutos() {
 
 /* ---------- Carrinho ---------- */
 
-let carrinho = lerLS(CHAVE_CARRINHO, {});        // { idProduto: quantidade }
-let cupomAtivo = lerLS(CHAVE_CUPOM, null);        // 'BEMVINDO10' ou null
-let pedidos = lerLS(CHAVE_PEDIDOS, []);           // histórico simulado
-let agendamentos = lerLS(CHAVE_AGENDAMENTOS, []); // agendamentos locais
+let carrinho = lerLS(CHAVE_CARRINHO, {});
+let cupomAtivo = lerLS(CHAVE_CUPOM, null);
+let pedidos = lerLS(CHAVE_PEDIDOS, []);
+let agendamentos = lerLS(CHAVE_AGENDAMENTOS, []);
 
 function salvarCarrinho() {
   gravarLS(CHAVE_CARRINHO, carrinho);
@@ -334,7 +341,7 @@ function renderizarCarrinho() {
   const desconto = cupom ? cupom.valor : 0;
 
   $('#badgeCarrinho').textContent = totalItens;
-  $('#vazioCarrinho').hidden = ids.length > 0;
+  mostrarElemento('vazioCarrinho', ids.length === 0);
   $('#btnFinalizar').disabled = ids.length === 0;
   $('#btnLimparCarrinho').disabled = ids.length === 0;
 
@@ -364,23 +371,25 @@ function renderizarCarrinho() {
   $('#btnCupom').textContent = cupomAtivo ? 'Remover' : 'Aplicar';
   if (cupom) {
     $('#linhaCupom').textContent = `🎟️ Cupom ${cupom.codigo} aplicado: −${cupom.percentual}% (−${brl.format(cupom.valor)})`;
-    $('#linhaCupom').hidden = false;
+    mostrarElemento('linhaCupom', true);
   } else {
-    $('#linhaCupom').hidden = true;
+    mostrarElemento('linhaCupom', false);
   }
-  $('#linhaDesconto').hidden = desconto === 0;
+  mostrarElemento('linhaDesconto', desconto > 0);
   $('#valorDesconto').textContent = '− ' + brl.format(desconto);
   $('#valorTotal').textContent = brl.format(subtotal - desconto);
 }
 
 function abrirFecharCarrinho(abrir) {
-  const painel = $('#painelCarrinho');
-  painel.hidden = !abrir;
-  if (abrir) $('#fecharCarrinho').focus();
+  if (abrir) {
+    abrirOverlay('#painelCarrinho');
+    $('#fecharCarrinho').focus();
+  } else {
+    fecharOverlay('#painelCarrinho');
+  }
 }
 
 function aplicarCupom() {
-  // Se já há cupom ativo, o botão remove
   if (cupomAtivo) {
     cupomAtivo = null;
     gravarLS(CHAVE_CUPOM, null);
@@ -432,7 +441,7 @@ function finalizarPedido() {
 
   $('#codigoPedido').textContent = pedido.codigo;
   $('#resumoPedido').innerHTML = `Itens: ${pedido.itens.map((i) => `${i.qtd}× ${i.nome}`).join(', ')}. Total: <strong>${brl.format(pedido.total)}</strong>.`;
-  $('#modalPedido').hidden = false;
+  abrirOverlay('#modalPedido');
   $('#fecharModal').focus();
 }
 
@@ -501,9 +510,9 @@ function atualizarResumo() {
 
   if (servico && profissional && data && horario) {
     resumo.textContent = `Resumo: ${servico.nome} (${servico.duracao} min, ${brl.format(servico.preco)}) com ${profissional}, em ${data} às ${horario}.`;
-    resumo.hidden = false;
+    mostrarElemento('resumoAgendamento', true);
   } else {
-    resumo.hidden = true;
+    mostrarElemento('resumoAgendamento', false);
   }
 }
 
@@ -518,7 +527,6 @@ function processarAgendamento(evento) {
   const telefone = $('#inpTelefone').value.trim();
   const obs = $('#inpObs').value.trim();
 
-  // Limpa destaques de erro e revalida campo a campo
   ['#selServico', '#selProfissional', '#inpData', '#selHorario', '#inpNome'].forEach((s) => marcarInvalido(s, false));
 
   const erros = [];
@@ -529,13 +537,12 @@ function processarAgendamento(evento) {
   if (!horario) { erros.push('escolha um horário'); marcarInvalido('#selHorario', true); }
   if (!nome) { erros.push('informe seu nome'); marcarInvalido('#inpNome', true); }
 
-  const caixaErro = $('#erroAgendamento');
   if (erros.length > 0) {
-    caixaErro.textContent = '⚠️ Corrija o formulário: ' + erros.join(', ') + '.';
-    caixaErro.hidden = false;
+    $('#erroAgendamento').textContent = '⚠️ Corrija o formulário: ' + erros.join(', ') + '.';
+    mostrarElemento('erroAgendamento', true);
     return;
   }
-  caixaErro.hidden = true;
+  mostrarElemento('erroAgendamento', false);
 
   const servico = SERVICOS.find((s) => s.id === servicoId);
   const registro = {
@@ -554,23 +561,23 @@ function processarAgendamento(evento) {
   agendamentos.push(registro);
   gravarLS(CHAVE_AGENDAMENTOS, agendamentos);
 
-  $('#confirmacaoAgendamento').hidden = false;
   $('#detalheAgendamento').innerHTML = `
     <strong>${registro.nome}</strong>, seu horário de <strong>${registro.servico}</strong> com
     <strong>${registro.profissional}</strong> foi registrado para <strong>${registro.data}</strong> às
     <strong>${registro.horario}</strong>. Código: <strong>${registro.codigo}</strong>.
   `;
+  mostrarElemento('confirmacaoAgendamento', true);
   $('#confirmacaoAgendamento').scrollIntoView({ behavior: 'smooth' });
 
   evento.target.reset();
-  atualizarHorarios(); // reflete o horário recém-ocupado
+  atualizarHorarios();
   renderizarAgendamentos();
   mostrarToast('📅 Agendamento registrado localmente (demonstração).');
 }
 
 function renderizarAgendamentos() {
   const lista = $('#listaAgendamentos');
-  $('#vazioAgendamentos').hidden = agendamentos.length > 0;
+  mostrarElemento('vazioAgendamentos', agendamentos.length === 0);
 
   lista.innerHTML = [...agendamentos].reverse().map((a, indiceReverso) => {
     const indice = agendamentos.length - 1 - indiceReverso;
@@ -589,7 +596,7 @@ function renderizarAgendamentos() {
       agendamentos.splice(Number(btn.dataset.indice), 1);
       gravarLS(CHAVE_AGENDAMENTOS, agendamentos);
       renderizarAgendamentos();
-      $('#confirmacaoAgendamento').hidden = true;
+      mostrarElemento('confirmacaoAgendamento', false);
       atualizarHorarios();
       mostrarToast('Agendamento cancelado.');
     });
@@ -600,7 +607,8 @@ function renderizarAgendamentos() {
 
 function renderizarPedidos() {
   const lista = $('#listaPedidos');
-  $('#vazioPedidos').hidden = pedidos.length > 0;
+  mostrarElemento('vazioPedidos', pedidos.length === 0);
+  $('#btnLimparPedidos').disabled = pedidos.length === 0;
 
   lista.innerHTML = [...pedidos].reverse().map((p) => `
     <li>
@@ -613,6 +621,17 @@ function renderizarPedidos() {
   `).join('');
 }
 
+function limparPedidos() {
+  if (pedidos.length === 0) {
+    mostrarToast('Nenhum pedido no histórico.');
+    return;
+  }
+  pedidos = [];
+  gravarLS(CHAVE_PEDIDOS, pedidos);
+  renderizarPedidos();
+  mostrarToast('Histórico de pedidos limpo.');
+}
+
 /* ---------- Abas locais ---------- */
 
 function alternarAba(agendamentosAtiva) {
@@ -620,8 +639,8 @@ function alternarAba(agendamentosAtiva) {
   $('#tabAgendamentos').setAttribute('aria-selected', String(agendamentosAtiva));
   $('#tabPedidos').classList.toggle('ativa', !agendamentosAtiva);
   $('#tabPedidos').setAttribute('aria-selected', String(!agendamentosAtiva));
-  $('#painelAgendamentos').hidden = !agendamentosAtiva;
-  $('#painelPedidos').hidden = agendamentosAtiva;
+  mostrarElemento('painelAgendamentos', agendamentosAtiva);
+  mostrarElemento('painelPedidos', !agendamentosAtiva);
 }
 
 function configurarAbas() {
@@ -634,7 +653,7 @@ function configurarAbas() {
 function configurarModais() {
   ['#modalPedido', '#modalServico'].forEach((sel) => {
     $(sel).addEventListener('click', (e) => {
-      if (e.target === $(sel)) $(sel).hidden = true;
+      if (e.target === $(sel)) fecharOverlay(sel);
     });
   });
 }
@@ -670,8 +689,8 @@ document.addEventListener('DOMContentLoaded', () => {
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') {
       abrirFecharCarrinho(false);
-      $('#modalPedido').hidden = true;
-      $('#modalServico').hidden = true;
+      fecharOverlay('#modalPedido');
+      fecharOverlay('#modalServico');
     }
   });
 
@@ -682,8 +701,9 @@ document.addEventListener('DOMContentLoaded', () => {
   });
   $('#btnFinalizar').addEventListener('click', finalizarPedido);
   $('#btnCupom').addEventListener('click', aplicarCupom);
-  $('#fecharModal').addEventListener('click', () => { $('#modalPedido').hidden = true; });
-  $('#fecharModalServico').addEventListener('click', () => { $('#modalServico').hidden = true; });
+  $('#btnLimparPedidos').addEventListener('click', limparPedidos);
+  $('#fecharModal').addEventListener('click', () => fecharOverlay('#modalPedido'));
+  $('#fecharModalServico').addEventListener('click', () => fecharOverlay('#modalServico'));
 
   $('#formAgendamento').addEventListener('submit', processarAgendamento);
   ['selServico', 'selProfissional', 'inpData', 'selHorario'].forEach((id) => {
@@ -701,5 +721,5 @@ document.addEventListener('DOMContentLoaded', () => {
   renderizarPedidos();
   renderizarCarrinho();
 
-  console.info('Navalha & Brilho: aplicação iniciada. Dados de demonstração no localStorage.');
+  console.info('Navalha & Brilho: aplicação iniciada (v5). Dados de demonstração no localStorage.');
 });
