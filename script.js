@@ -1,9 +1,9 @@
 'use strict';
 
 /* =====================================================
-   Navalha & Brilho — script principal (v5, COMPLETO)
-   Visibilidade dos overlays controlada por style.display
-   inline — imune a CSS antigo em cache.
+   Navalha & Brilho — script principal (v6, COMPLETO)
+   Blindagem: toda ligação de evento verifica se o elemento
+   existe; produtos renderizam primeiro na inicialização.
    ===================================================== */
 
 const CHAVE_CARRINHO     = 'nb_carrinho_v1';
@@ -13,9 +13,9 @@ const CHAVE_TEMA         = 'nb_tema_v1';
 const CHAVE_CUPOM        = 'nb_cupom_v1';
 
 const SERVICOS = [
-  { id: 'corte',      nome: 'Corte Masculino', emoji: '✂️', duracao: 40,  preco: 45,  desc: 'Corte clássico ou moderno com acabamento na navalha.', detalhe: 'Inclui consulta de visagismo, lavagem, corte com tesoura e máquina, acabamento na navalha e finalização com pomada.' },
-  { id: 'barba',      nome: 'Barba Completa',  emoji: '🪒', duracao: 30,  preco: 35,  desc: 'Modelagem, toalha quente e finalização com balm.', detalhe: 'Aparo e modelagem da barba, toalha quente, contornos na navalha e balm calmante.' },
-  { id: 'infantil',   nome: 'Corte Infantil',  emoji: '🧒', duracao: 30,  preco: 35,  desc: 'Corte para crianças em ambiente tranquilo e lúdico.', detalhe: 'Atendimento paciente para crianças até 10 anos, com cadeira especial e brinquedos no salão.' },
+  { id: 'corte',      nome: 'Corte Masculino', emoji: '✂️', duracao: 40,  preco: 45,  desc: 'Corte clássico ou moderno com acabamento na navalha.', detalhe: 'Consulta de visagismo, lavagem, corte com tesoura e máquina, acabamento na navalha e finalização com pomada.' },
+  { id: 'barba',      nome: 'Barba Completa',  emoji: '🪒', duracao: 30,  preco: 35,  desc: 'Modelagem, toalha quente e finalização com balm.', detalhe: 'Aparo e modelagem, toalha quente, contornos na navalha e balm calmante.' },
+  { id: 'infantil',   nome: 'Corte Infantil',  emoji: '🧒', duracao: 30,  preco: 35,  desc: 'Corte para crianças em ambiente tranquilo e lúdico.', detalhe: 'Atendimento paciente para crianças até 10 anos, com cadeira especial e brinquedos.' },
   { id: 'hidratacao', nome: 'Hidratação',      emoji: '💧', duracao: 45,  preco: 60,  desc: 'Tratamento capilar profundo para fios ressecados.', detalhe: 'Limpeza prévia, máscara profissional, ampolas nutritivas e secagem assistida.' },
   { id: 'escova',     nome: 'Escova Modelada', emoji: '💨', duracao: 40,  preco: 40,  desc: 'Escova profissional com finalização conforme desejo.', detalhe: 'Lavagem, escova com modelagem a quente ou fria e proteção térmica.' },
   { id: 'coloracao',  nome: 'Coloração',       emoji: '🎨', duracao: 120, preco: 120, desc: 'Coloração completa com avaliação prévia de tom.', detalhe: 'Teste de mecha, avaliação de tom, coloração profissional, matização e finalização.' }
@@ -44,61 +44,59 @@ const PRODUTOS = [
 const CATEGORIAS_ROTULO = { cabelo: 'Cabelo', barba: 'Barba', acessorios: 'Acessórios' };
 
 const DEPOIMENTOS = [
-  { texto: 'Melhor degradê da cidade, sem exagero. O atendimento do Ricardo é impecável e o ambiente é muito agradável.', autor: 'Lucas M.' },
-  { texto: 'Fiz coloração com a Camila e amei o resultado. Agendei pelo site em menos de um minuto, super prático.', autor: 'Fernanda R.' },
-  { texto: 'Compro os produtos no site desde a primeira visita. A pomada é a mesma que usam no salão, vale cada centavo.', autor: 'Pedro H.' }
+  { texto: 'Melhor degradê da cidade. Atendimento impecável e ambiente agradável.', autor: 'Lucas M.' },
+  { texto: 'Fiz coloração e amei o resultado. Agendei pelo site em menos de um minuto.', autor: 'Fernanda R.' },
+  { texto: 'Compro os produtos desde a primeira visita. A pomada é a mesma do salão.', autor: 'Pedro H.' }
 ];
 
 const CUPONS = { BEMVINDO10: 10, NAVALHA5: 5 };
 const HORARIOS_BASE = ['09:00', '10:00', '11:00', '12:00', '14:00', '15:00', '16:00', '17:00', '18:00', '19:00'];
 
-/* ---------- Utilitários ---------- */
+/* ---------- Utilitários e blindagem ---------- */
 
-const $ = (seletor) => document.querySelector(seletor);
+const $  = (sel) => document.querySelector(sel);
+const el = (id)  => document.getElementById(id);
 const brl = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' });
 
+// Anexa evento somente se o elemento existir — evita quebrar a inicialização
+function bind(id, evento, fn) {
+  const e = el(id);
+  if (e) e.addEventListener(evento, fn);
+  else console.warn('Elemento ausente no HTML (ignorado): #' + id);
+}
+
+function bindAll(sel, evento, fn) {
+  document.querySelectorAll(sel).forEach((e) => e.addEventListener(evento, fn));
+}
+
 function lerLS(chave, padrao) {
-  try {
-    const bruto = localStorage.getItem(chave);
-    return bruto ? JSON.parse(bruto) : padrao;
-  } catch (e) {
-    console.warn('Falha ao ler dados locais:', e);
-    return padrao;
-  }
+  try { const b = localStorage.getItem(chave); return b ? JSON.parse(b) : padrao; }
+  catch (e) { return padrao; }
 }
 
 function gravarLS(chave, valor) {
-  try {
-    localStorage.setItem(chave, JSON.stringify(valor));
-  } catch (e) {
-    console.warn('Falha ao gravar dados locais:', e);
-  }
+  try { localStorage.setItem(chave, JSON.stringify(valor)); } catch (e) { /* ignora */ }
 }
 
-function codigoAleatorio(prefixo) {
-  return prefixo + '-' + Math.random().toString(36).slice(2, 6).toUpperCase();
-}
+function codigoAleatorio(p) { return p + '-' + Math.random().toString(36).slice(2, 6).toUpperCase(); }
 
-/* ---------- Overlays: controle direto por style.display ---------- */
-
-function abrirOverlay(id) { $(id).style.display = 'flex'; }
-function fecharOverlay(id) { $(id).style.display = 'none'; }
-
-function mostrarElemento(id, mostrar) {
-  $(id).style.display = mostrar ? 'block' : 'none';
-}
+function abrirOverlay(id)   { const e = el(id); if (e) e.style.display = 'flex'; }
+function fecharOverlay(id)  { const e = el(id); if (e) e.style.display = 'none'; }
+function mostrar(id, sim)   { const e = el(id); if (e) e.style.display = sim ? 'block' : 'none'; }
 
 let temporizadorToast = null;
-function mostrarToast(mensagem) {
-  const toast = $('#toast');
-  toast.textContent = mensagem;
-  toast.style.display = 'block';
+function mostrarToast(msg) {
+  const t = el('toast');
+  if (!t) return;
+  t.textContent = msg;
+  t.style.display = 'block';
   clearTimeout(temporizadorToast);
-  temporizadorToast = setTimeout(() => { toast.style.display = 'none'; }, 3000);
+  temporizadorToast = setTimeout(() => { t.style.display = 'none'; }, 3000);
 }
 
-function marcarInvalido(seletor, invalido) {
-  $(seletor).classList.toggle('campo-invalido', invalido);
+function marcarInvalido(id, invalido) {
+  const e = el(id);
+  if (e) e.classList.toggle('campo-invalido', invalido);
 }
 
 /* ---------- Service Worker ---------- */
@@ -106,71 +104,72 @@ function marcarInvalido(seletor, invalido) {
 function registrarServiceWorker() {
   if (!('serviceWorker' in navigator)) return;
   navigator.serviceWorker.register('./sw.js')
-    .then((registro) => console.info('Service Worker registrado. Escopo:', registro.scope))
-    .catch((erro) => console.warn('Service Worker não registrado (o site continua funcionando):', erro));
+    .then((r) => console.info('SW registrado. Escopo:', r.scope))
+    .catch((e) => console.warn('SW não registrado (site funciona mesmo assim):', e));
 }
 
 /* ---------- Cabeçalho ---------- */
 
 function configurarMenu() {
-  const btn = $('#btnMenu');
-  const nav = $('#siteNav');
+  const btn = el('btnMenu'), nav = el('siteNav');
+  if (!btn || !nav) return;
   btn.addEventListener('click', () => {
     const aberto = nav.classList.toggle('aberto');
     btn.setAttribute('aria-expanded', String(aberto));
     btn.textContent = aberto ? '✕' : '☰';
   });
-  nav.querySelectorAll('a').forEach((link) => {
-    link.addEventListener('click', () => {
-      nav.classList.remove('aberto');
-      btn.setAttribute('aria-expanded', 'false');
-      btn.textContent = '☰';
-    });
+  bindAll('#siteNav a', 'click', () => {
+    nav.classList.remove('aberto');
+    btn.setAttribute('aria-expanded', 'false');
+    btn.textContent = '☰';
   });
+}
+
+function atualizarIconeTema() {
+  const b = el('btnTema');
+  if (b) b.textContent = document.body.classList.contains('tema-escuro') ? '☀️' : '🌙';
 }
 
 function configurarTema() {
   if (lerLS(CHAVE_TEMA, 'claro') === 'escuro') document.body.classList.add('tema-escuro');
   atualizarIconeTema();
-  $('#btnTema').addEventListener('click', () => {
+  bind('btnTema', 'click', () => {
     const escuro = document.body.classList.toggle('tema-escuro');
     gravarLS(CHAVE_TEMA, escuro ? 'escuro' : 'claro');
     atualizarIconeTema();
   });
 }
 
-function atualizarIconeTema() {
-  $('#btnTema').textContent = document.body.classList.contains('tema-escuro') ? '☀️' : '🌙';
-}
-
 function configurarConexao() {
-  const banner = $('#bannerConexao');
-  const atualizar = () => { banner.style.display = navigator.onLine ? 'none' : 'block'; };
+  const atualizar = () => mostrar('bannerConexao', !navigator.onLine);
   window.addEventListener('online', atualizar);
   window.addEventListener('offline', atualizar);
   atualizar();
 }
 
 function configurarInstalacao() {
-  let eventoInstalacao = null;
+  let ev = null;
   window.addEventListener('beforeinstallprompt', (e) => {
     e.preventDefault();
-    eventoInstalacao = e;
-    $('#btnInstalar').style.display = 'inline-block';
+    ev = e;
+    const b = el('btnInstalar');
+    if (b) b.style.display = 'inline-block';
   });
-  $('#btnInstalar').addEventListener('click', async () => {
-    if (!eventoInstalacao) return;
-    eventoInstalacao.prompt();
-    await eventoInstalacao.userChoice;
-    eventoInstalacao = null;
-    $('#btnInstalar').style.display = 'none';
+  bind('btnInstalar', 'click', async () => {
+    if (!ev) return;
+    ev.prompt();
+    await ev.userChoice;
+    ev = null;
+    const b = el('btnInstalar');
+    if (b) b.style.display = 'none';
   });
 }
 
 /* ---------- Serviços ---------- */
 
 function renderizarServicos() {
-  const lista = $('#listaServicos');
+  const lista = el('listaServicos');
+  if (!lista) return;
   lista.innerHTML = SERVICOS.map((s) => `
     <article class="card">
       <span class="card-emoji" aria-hidden="true">${s.emoji}</span>
@@ -185,36 +184,33 @@ function renderizarServicos() {
     </article>
   `).join('');
 
-  lista.querySelectorAll('.btn-agendar-servico').forEach((btn) => {
-    btn.addEventListener('click', () => {
-      $('#selServico').value = btn.dataset.servico;
-      atualizarResumo();
-      $('#agendamento').scrollIntoView({ behavior: 'smooth' });
-    });
+  bindAll('.btn-agendar-servico', 'click', (e) => {
+    const sel = el('selServico');
+    if (sel) sel.value = e.currentTarget.dataset.servico;
+    atualizarResumo();
+    const sec = el('agendamento');
+    if (sec) sec.scrollIntoView({ behavior: 'smooth' });
   });
-
-  lista.querySelectorAll('.btn-detalhe').forEach((btn) => {
-    btn.addEventListener('click', () => abrirModalServico(btn.dataset.servico));
-  });
+  bindAll('.btn-detalhe', 'click', (e) => abrirModalServico(e.currentTarget.dataset.servico));
 }
 
 function abrirModalServico(id) {
   const s = SERVICOS.find((x) => x.id === id);
   if (!s) return;
-  $('#tituloModalServico').textContent = `${s.emoji} ${s.nome}`;
-  $('#corpoModalServico').innerHTML = `
-    <p>${s.detalhe}</p>
-    <p><strong>Duração:</strong> ${s.duracao} minutos</p>
-    <p><strong>Preço:</strong> ${brl.format(s.preco)}</p>
-  `;
-  abrirOverlay('#modalServico');
-  $('#fecharModalServico').focus();
+  const t = el('tituloModalServico'), c = el('corpoModalServico');
+  if (t) t.textContent = `${s.emoji} ${s.nome}`;
+  if (c) c.innerHTML = `<p>${s.detalhe}</p><p><strong>Duração:</strong> ${s.duracao} min</p><p><strong>Preço:</strong> ${brl.format(s.preco)}</p>`;
+  abrirOverlay('modalServico');
+  const f = el('fecharModalServico');
+  if (f) f.focus();
 }
 
-/* ---------- Equipe ---------- */
+/* ---------- Equipe e depoimentos ---------- */
 
 function renderizarEquipe() {
-  $('#listaEquipe').innerHTML = PROFISSIONAIS.map((p) => `
+  const l = el('listaEquipe');
+  if (!l) return;
+  l.innerHTML = PROFISSIONAIS.map((p) => `
     <article class="card card-equipe">
       <span class="card-emoji" aria-hidden="true">${p.emoji}</span>
       <h3 class="card-nome">${p.nome}</h3>
@@ -224,37 +220,32 @@ function renderizarEquipe() {
   `).join('');
 }
 
-/* ---------- Depoimentos ---------- */
-
 let depoIndice = 0;
-
 function renderizarDepoimento() {
+  const c = el('depoContainer');
+  if (!c) return;
   const d = DEPOIMENTOS[depoIndice];
-  $('#depoContainer').innerHTML = `
-    <p class="depo-texto">“${d.texto}”</p>
-    <p class="depo-autor">— ${d.autor}</p>
-  `;
-  $('#depoIndicador').textContent = `${depoIndice + 1} de ${DEPOIMENTOS.length}`;
+  c.innerHTML = `<p class="depo-texto">“${d.texto}”</p><p class="depo-autor">— ${d.autor}</p>`;
+  const i = el('depoIndicador');
+  if (i) i.textContent = `${depoIndice + 1} de ${DEPOIMENTOS.length}`;
 }
 
 function configurarCarrossel() {
   renderizarDepoimento();
-  $('#depoAnterior').addEventListener('click', () => {
-    depoIndice = (depoIndice - 1 + DEPOIMENTOS.length) % DEPOIMENTOS.length;
-    renderizarDepoimento();
-  });
-  $('#depoProximo').addEventListener('click', () => {
-    depoIndice = (depoIndice + 1) % DEPOIMENTOS.length;
-    renderizarDepoimento();
-  });
+  bind('depoAnterior', 'click', () => { depoIndice = (depoIndice - 1 + DEPOIMENTOS.length) % DEPOIMENTOS.length; renderizarDepoimento(); });
+  bind('depoProximo', 'click', () => { depoIndice = (depoIndice + 1) % DEPOIMENTOS.length; renderizarDepoimento(); });
 }
 
 /* ---------- Produtos ---------- */
 
 function filtrarProdutos() {
-  const termo = $('#buscaProduto').value.trim().toLowerCase();
-  const categoria = $('#filtroCategoria').value;
-  const ordem = $('#ordenarProdutos').value;
+  const inpBusca = el('buscaProduto'), inpCat = el('filtroCategoria'), inpOrdem = el('ordenarProdutos');
+  const grade = el('gradeProdutos');
+  if (!grade) return;
+
+  const termo = inpBusca ? inpBusca.value.trim().toLowerCase() : '';
+  const categoria = inpCat ? inpCat.value : 'todos';
+  const ordem = inpOrdem ? inpOrdem.value : 'relevancia';
 
   let filtrados = PRODUTOS.filter((p) => {
     const casaTermo = !termo || p.nome.toLowerCase().includes(termo) || p.desc.toLowerCase().includes(termo);
@@ -266,8 +257,7 @@ function filtrarProdutos() {
   if (ordem === 'preco-asc') filtrados.sort((a, b) => a.preco - b.preco);
   if (ordem === 'preco-desc') filtrados.sort((a, b) => b.preco - a.preco);
 
-  const grade = $('#gradeProdutos');
-  mostrarElemento('vazioProdutos', filtrados.length === 0);
+  mostrar('vazioProdutos', filtrados.length === 0);
 
   grade.innerHTML = filtrados.map((p) => `
     <article class="card">
@@ -275,16 +265,12 @@ function filtrarProdutos() {
       <span class="card-categoria">${CATEGORIAS_ROTULO[p.cat]}</span>
       <h3 class="card-nome">${p.nome}</h3>
       <p class="card-desc">${p.desc}</p>
-      <div class="card-meta">
-        <span class="card-preco">${brl.format(p.preco)}</span>
-      </div>
+      <div class="card-meta"><span class="card-preco">${brl.format(p.preco)}</span></div>
       <button class="btn btn-primario btn-add" data-id="${p.id}">Adicionar ao carrinho</button>
     </article>
   `).join('');
 
-  grade.querySelectorAll('.btn-add').forEach((btn) => {
-    btn.addEventListener('click', () => adicionarAoCarrinho(btn.dataset.id));
-  });
+  bindAll('.btn-add', 'click', (e) => adicionarAoCarrinho(e.currentTarget.dataset.id));
 }
 
 /* ---------- Carrinho ---------- */
@@ -294,16 +280,13 @@ let cupomAtivo = lerLS(CHAVE_CUPOM, null);
 let pedidos = lerLS(CHAVE_PEDIDOS, []);
 let agendamentos = lerLS(CHAVE_AGENDAMENTOS, []);
 
-function salvarCarrinho() {
-  gravarLS(CHAVE_CARRINHO, carrinho);
-  renderizarCarrinho();
-}
+function salvarCarrinho() { gravarLS(CHAVE_CARRINHO, carrinho); renderizarCarrinho(); }
 
 function adicionarAoCarrinho(id) {
   carrinho[id] = (carrinho[id] || 0) + 1;
   salvarCarrinho();
-  const produto = PRODUTOS.find((p) => p.id === id);
-  mostrarToast(`🛒 ${produto.nome} adicionado ao carrinho.`);
+  const p = PRODUTOS.find((x) => x.id === id);
+  mostrarToast(`🛒 ${p.nome} adicionado ao carrinho.`);
 }
 
 function alterarQuantidade(id, delta) {
@@ -313,49 +296,45 @@ function alterarQuantidade(id, delta) {
   salvarCarrinho();
 }
 
-function removerItem(id) {
-  delete carrinho[id];
-  salvarCarrinho();
-}
+function removerItem(id) { delete carrinho[id]; salvarCarrinho(); }
 
 function subtotalCarrinho() {
-  return Object.entries(carrinho).reduce((total, [id, qtd]) => {
+  return Object.entries(carrinho).reduce((t, [id, q]) => {
     const p = PRODUTOS.find((x) => x.id === id);
-    return p ? total + p.preco * qtd : total;
+    return p ? t + p.preco * q : t;
   }, 0);
 }
 
 function dadosCupom() {
-  if (!cupomAtivo) return null;
-  const percentual = CUPONS[cupomAtivo];
-  if (!percentual) return null;
-  return { codigo: cupomAtivo, percentual, valor: subtotalCarrinho() * (percentual / 100) };
+  if (!cupomAtivo || !CUPONS[cupomAtivo]) return null;
+  return { codigo: cupomAtivo, percentual: CUPONS[cupomAtivo], valor: subtotalCarrinho() * (CUPONS[cupomAtivo] / 100) };
 }
 
 function renderizarCarrinho() {
-  const lista = $('#itensCarrinho');
+  const lista = el('itensCarrinho');
+  if (!lista) return;
   const ids = Object.keys(carrinho);
-  const totalItens = ids.reduce((s, id) => s + carrinho[id], 0);
   const subtotal = subtotalCarrinho();
   const cupom = dadosCupom();
   const desconto = cupom ? cupom.valor : 0;
 
-  $('#badgeCarrinho').textContent = totalItens;
-  mostrarElemento('vazioCarrinho', ids.length === 0);
-  $('#btnFinalizar').disabled = ids.length === 0;
-  $('#btnLimparCarrinho').disabled = ids.length === 0;
+  const badge = el('badgeCarrinho');
+  if (badge) badge.textContent = ids.reduce((s, id) => s + carrinho[id], 0);
+  mostrar('vazioCarrinho', ids.length === 0);
+  const bf = el('btnFinalizar'); if (bf) bf.disabled = ids.length === 0;
+  const bl = el('btnLimparCarrinho'); if (bl) bl.disabled = ids.length === 0;
 
   lista.innerHTML = ids.map((id) => {
-    const p = PRODUTOS.find((prod) => prod.id === id);
+    const p = PRODUTOS.find((x) => x.id === id);
     if (!p) return '';
     return `
       <li>
         <span class="item-nome">${p.nome}</span>
         <span class="item-preco-unit">${brl.format(p.preco)} / un.</span>
         <div class="item-controles">
-          <button class="btn-qtd btn-menos" data-id="${id}" aria-label="Diminuir quantidade de ${p.nome}">−</button>
-          <span class="item-qtd" aria-label="Quantidade">${carrinho[id]}</span>
-          <button class="btn-qtd btn-mais" data-id="${id}" aria-label="Aumentar quantidade de ${p.nome}">+</button>
+          <button class="btn-qtd btn-menos" data-id="${id}">−</button>
+          <span class="item-qtd">${carrinho[id]}</span>
+          <button class="btn-qtd btn-mais" data-id="${id}">+</button>
         </div>
         <span class="item-subtotal">Subtotal: ${brl.format(p.preco * carrinho[id])}</span>
         <button class="btn-remover" data-id="${id}">Remover</button>
@@ -363,30 +342,25 @@ function renderizarCarrinho() {
     `;
   }).join('');
 
-  lista.querySelectorAll('.btn-mais').forEach((b) => b.addEventListener('click', () => alterarQuantidade(b.dataset.id, +1)));
-  lista.querySelectorAll('.btn-menos').forEach((b) => b.addEventListener('click', () => alterarQuantidade(b.dataset.id, -1)));
-  lista.querySelectorAll('.btn-remover').forEach((b) => b.addEventListener('click', () => removerItem(b.dataset.id)));
+  bindAll('.btn-mais', 'click', (e) => alterarQuantidade(e.currentTarget.dataset.id, +1));
+  bindAll('.btn-menos', 'click', (e) => alterarQuantidade(e.currentTarget.dataset.id, -1));
+  bindAll('.btn-remover', 'click', (e) => removerItem(e.currentTarget.dataset.id));
 
-  $('#subtotal').textContent = brl.format(subtotal);
-  $('#btnCupom').textContent = cupomAtivo ? 'Remover' : 'Aplicar';
+  const sub = el('subtotal'); if (sub) sub.textContent = brl.format(subtotal);
+  const bCupom = el('btnCupom'); if (bCupom) bCupom.textContent = cupomAtivo ? 'Remover' : 'Aplicar';
   if (cupom) {
-    $('#linhaCupom').textContent = `🎟️ Cupom ${cupom.codigo} aplicado: −${cupom.percentual}% (−${brl.format(cupom.valor)})`;
-    mostrarElemento('linhaCupom', true);
-  } else {
-    mostrarElemento('linhaCupom', false);
-  }
-  mostrarElemento('linhaDesconto', desconto > 0);
-  $('#valorDesconto').textContent = '− ' + brl.format(desconto);
-  $('#valorTotal').textContent = brl.format(subtotal - desconto);
+    const lc = el('linhaCupom');
+    if (lc) lc.textContent = `🎟️ Cupom ${cupom.codigo}: −${cupom.percentual}% (−${brl.format(cupom.valor)})`;
+    mostrar('linhaCupom', true);
+  } else mostrar('linhaCupom', false);
+  mostrar('linhaDesconto', desconto > 0);
+  const vd = el('valorDesconto'); if (vd) vd.textContent = '− ' + brl.format(desconto);
+  const vt = el('valorTotal'); if (vt) vt.textContent = brl.format(subtotal - desconto);
 }
 
 function abrirFecharCarrinho(abrir) {
-  if (abrir) {
-    abrirOverlay('#painelCarrinho');
-    $('#fecharCarrinho').focus();
-  } else {
-    fecharOverlay('#painelCarrinho');
-  }
+  if (abrir) { abrirOverlay('painelCarrinho'); const f = el('fecharCarrinho'); if (f) f.focus(); }
+  else fecharOverlay('painelCarrinho');
 }
 
 function aplicarCupom() {
@@ -397,21 +371,19 @@ function aplicarCupom() {
     mostrarToast('Cupom removido.');
     return;
   }
-  const codigo = $('#inpCupom').value.trim().toUpperCase();
+  const inp = el('inpCupom');
+  const codigo = inp ? inp.value.trim().toUpperCase() : '';
   if (CUPONS[codigo]) {
     cupomAtivo = codigo;
     gravarLS(CHAVE_CUPOM, codigo);
     renderizarCarrinho();
     mostrarToast(`🎟️ Cupom ${codigo} aplicado: -${CUPONS[codigo]}%.`);
-  } else {
-    mostrarToast('Cupom inválido. Tente BEMVINDO10 ou NAVALHA5.');
-  }
+  } else mostrarToast('Cupom inválido. Tente BEMVINDO10 ou NAVALHA5.');
 }
 
 function finalizarPedido() {
   const ids = Object.keys(carrinho);
   if (ids.length === 0) return;
-
   const subtotal = subtotalCarrinho();
   const cupom = dadosCupom();
   const desconto = cupom ? cupom.valor : 0;
@@ -422,8 +394,7 @@ function finalizarPedido() {
       const p = PRODUTOS.find((x) => x.id === id);
       return { nome: p.nome, qtd: carrinho[id], subtotal: p.preco * carrinho[id] };
     }),
-    subtotal,
-    desconto,
+    subtotal, desconto,
     total: subtotal - desconto,
     cupom: cupom ? cupom.codigo : null,
     criadoEm: new Date().toISOString()
@@ -431,143 +402,120 @@ function finalizarPedido() {
 
   pedidos.push(pedido);
   gravarLS(CHAVE_PEDIDOS, pedidos);
-
   carrinho = {};
   cupomAtivo = null;
   gravarLS(CHAVE_CUPOM, null);
-  $('#inpCupom').value = '';
+  const ic = el('inpCupom'); if (ic) ic.value = '';
   salvarCarrinho();
   renderizarPedidos();
 
-  $('#codigoPedido').textContent = pedido.codigo;
-  $('#resumoPedido').innerHTML = `Itens: ${pedido.itens.map((i) => `${i.qtd}× ${i.nome}`).join(', ')}. Total: <strong>${brl.format(pedido.total)}</strong>.`;
-  abrirOverlay('#modalPedido');
-  $('#fecharModal').focus();
+  const cp = el('codigoPedido'); if (cp) cp.textContent = pedido.codigo;
+  const rp = el('resumoPedido');
+  if (rp) rp.innerHTML = `Itens: ${pedido.itens.map((i) => `${i.qtd}× ${i.nome}`).join(', ')}. Total: <strong>${brl.format(pedido.total)}</strong>.`;
+  abrirOverlay('modalPedido');
+  const fm = el('fecharModal'); if (fm) fm.focus();
 }
 
 /* ---------- Agendamentos ---------- */
 
 function preencherSelectServicos() {
-  const sel = $('#selServico');
-  SERVICOS.forEach((s) => {
-    sel.appendChild(new Option(`${s.nome} — ${brl.format(s.preco)}`, s.id));
-  });
+  const sel = el('selServico');
+  if (!sel) return;
+  SERVICOS.forEach((s) => sel.appendChild(new Option(`${s.nome} — ${brl.format(s.preco)}`, s.id)));
 }
 
 function preencherSelectProfissionais() {
-  const sel = $('#selProfissional');
-  PROFISSIONAIS.forEach((p) => {
-    sel.appendChild(new Option(`${p.nome} — ${p.cargo}`, p.nome));
-  });
+  const sel = el('selProfissional');
+  if (!sel) return;
+  PROFISSIONAIS.forEach((p) => sel.appendChild(new Option(`${p.nome} — ${p.cargo}`, p.nome)));
 }
 
 function definirDataMinima() {
-  const hoje = new Date();
-  const iso = `${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(2, '0')}-${String(hoje.getDate()).padStart(2, '0')}`;
-  $('#inpData').min = iso;
+  const inp = el('inpData');
+  if (!inp) return;
+  const h = new Date();
+  inp.min = `${h.getFullYear()}-${String(h.getMonth() + 1).padStart(2, '0')}-${String(h.getDate()).padStart(2, '0')}`;
 }
 
 function dataISOValida(valor) {
-  const [ano, mes, dia] = valor.split('-').map(Number);
-  const escolhida = new Date(ano, mes - 1, dia);
-  const hoje = new Date();
-  hoje.setHours(0, 0, 0, 0);
+  const [a, m, d] = valor.split('-').map(Number);
+  const escolhida = new Date(a, m - 1, d);
+  const hoje = new Date(); hoje.setHours(0, 0, 0, 0);
   return escolhida >= hoje;
 }
 
 function atualizarHorarios() {
-  const selHorario = $('#selHorario');
-  const data = $('#inpData').value;
-  const profissional = $('#selProfissional').value;
-  selHorario.innerHTML = '';
-
+  const sel = el('selHorario');
+  if (!sel) return;
+  const data = el('inpData') ? el('inpData').value : '';
+  const prof = el('selProfissional') ? el('selProfissional').value : '';
+  sel.innerHTML = '';
   if (!data) {
-    selHorario.appendChild(new Option('Selecione uma data primeiro', ''));
-    selHorario.value = '';
+    sel.appendChild(new Option('Selecione uma data primeiro', ''));
+    sel.value = '';
     atualizarResumo();
     return;
   }
-
-  const ocupados = agendamentos
-    .filter((a) => a.data === data && a.profissional === profissional)
-    .map((a) => a.horario);
-
-  selHorario.appendChild(new Option('Selecione um horário', ''));
+  const ocupados = agendamentos.filter((a) => a.data === data && a.profissional === prof).map((a) => a.horario);
+  sel.appendChild(new Option('Selecione um horário', ''));
   HORARIOS_BASE.forEach((h) => {
     const op = new Option(ocupados.includes(h) ? `${h} — ocupado` : h, h);
     if (ocupados.includes(h)) op.disabled = true;
-    selHorario.appendChild(op);
+    sel.appendChild(op);
   });
   atualizarResumo();
 }
 
 function atualizarResumo() {
-  const resumo = $('#resumoAgendamento');
-  const servico = SERVICOS.find((s) => s.id === $('#selServico').value);
-  const profissional = $('#selProfissional').value;
-  const data = $('#inpData').value;
-  const horario = $('#selHorario').value;
-
-  if (servico && profissional && data && horario) {
-    resumo.textContent = `Resumo: ${servico.nome} (${servico.duracao} min, ${brl.format(servico.preco)}) com ${profissional}, em ${data} às ${horario}.`;
-    mostrarElemento('resumoAgendamento', true);
-  } else {
-    mostrarElemento('resumoAgendamento', false);
-  }
+  const resumo = el('resumoAgendamento');
+  if (!resumo) return;
+  const s = SERVICOS.find((x) => x.id === (el('selServico') ? el('selServico').value : ''));
+  const prof = el('selProfissional') ? el('selProfissional').value : '';
+  const data = el('inpData') ? el('inpData').value : '';
+  const hor = el('selHorario') ? el('selHorario').value : '';
+  if (s && prof && data && hor) {
+    resumo.textContent = `Resumo: ${s.nome} (${s.duracao} min, ${brl.format(s.preco)}) com ${prof}, em ${data} às ${hor}.`;
+    mostrar('resumoAgendamento', true);
+  } else mostrar('resumoAgendamento', false);
 }
 
 function processarAgendamento(evento) {
   evento.preventDefault();
+  const v = (id) => el(id) ? el(id).value.trim() : '';
+  const servicoId = el('selServico') ? el('selServico').value : '';
+  const profissional = v('selProfissional');
+  const data = v('inpData');
+  const horario = el('selHorario') ? el('selHorario').value : '';
+  const nome = v('inpNome');
+  const telefone = v('inpTelefone');
+  const obs = v('inpObs');
 
-  const servicoId = $('#selServico').value;
-  const profissional = $('#selProfissional').value;
-  const data = $('#inpData').value;
-  const horario = $('#selHorario').value;
-  const nome = $('#inpNome').value.trim();
-  const telefone = $('#inpTelefone').value.trim();
-  const obs = $('#inpObs').value.trim();
-
-  ['#selServico', '#selProfissional', '#inpData', '#selHorario', '#inpNome'].forEach((s) => marcarInvalido(s, false));
+  ['selServico', 'selProfissional', 'inpData', 'selHorario', 'inpNome'].forEach((id) => marcarInvalido(id, false));
 
   const erros = [];
-  if (!servicoId) { erros.push('selecione um serviço'); marcarInvalido('#selServico', true); }
-  if (!profissional) { erros.push('selecione um profissional'); marcarInvalido('#selProfissional', true); }
-  if (!data) { erros.push('escolha uma data'); marcarInvalido('#inpData', true); }
-  else if (!dataISOValida(data)) { erros.push('a data não pode estar no passado'); marcarInvalido('#inpData', true); }
-  if (!horario) { erros.push('escolha um horário'); marcarInvalido('#selHorario', true); }
-  if (!nome) { erros.push('informe seu nome'); marcarInvalido('#inpNome', true); }
+  if (!servicoId) { erros.push('selecione um serviço'); marcarInvalido('selServico', true); }
+  if (!profissional) { erros.push('selecione um profissional'); marcarInvalido('selProfissional', true); }
+  if (!data) { erros.push('escolha uma data'); marcarInvalido('inpData', true); }
+  else if (!dataISOValida(data)) { erros.push('a data não pode estar no passado'); marcarInvalido('inpData', true); }
+  if (!horario) { erros.push('escolha um horário'); marcarInvalido('selHorario', true); }
+  if (!nome) { erros.push('informe seu nome'); marcarInvalido('inpNome', true); }
 
   if (erros.length > 0) {
-    $('#erroAgendamento').textContent = '⚠️ Corrija o formulário: ' + erros.join(', ') + '.';
-    mostrarElemento('erroAgendamento', true);
+    const e = el('erroAgendamento');
+    if (e) e.textContent = '⚠️ Corrija o formulário: ' + erros.join(', ') + '.';
+    mostrar('erroAgendamento', true);
     return;
   }
-  mostrarElemento('erroAgendamento', false);
+  mostrar('erroAgendamento', false);
 
   const servico = SERVICOS.find((s) => s.id === servicoId);
-  const registro = {
-    codigo: codigoAleatorio('NB'),
-    servico: servico.nome,
-    preco: servico.preco,
-    profissional,
-    data,
-    horario,
-    nome,
-    telefone,
-    obs,
-    criadoEm: new Date().toISOString()
-  };
-
+  const registro = { codigo: codigoAleatorio('NB'), servico: servico.nome, preco: servico.preco, profissional, data, horario, nome, telefone, obs, criadoEm: new Date().toISOString() };
   agendamentos.push(registro);
   gravarLS(CHAVE_AGENDAMENTOS, agendamentos);
 
-  $('#detalheAgendamento').innerHTML = `
-    <strong>${registro.nome}</strong>, seu horário de <strong>${registro.servico}</strong> com
-    <strong>${registro.profissional}</strong> foi registrado para <strong>${registro.data}</strong> às
-    <strong>${registro.horario}</strong>. Código: <strong>${registro.codigo}</strong>.
-  `;
-  mostrarElemento('confirmacaoAgendamento', true);
-  $('#confirmacaoAgendamento').scrollIntoView({ behavior: 'smooth' });
+  const d = el('detalheAgendamento');
+  if (d) d.innerHTML = `<strong>${registro.nome}</strong>, seu horário de <strong>${registro.servico}</strong> com <strong>${registro.profissional}</strong> foi registrado para <strong>${registro.data}</strong> às <strong>${registro.horario}</strong>. Código: <strong>${registro.codigo}</strong>.`;
+  mostrar('confirmacaoAgendamento', true);
 
   evento.target.reset();
   atualizarHorarios();
@@ -576,92 +524,75 @@ function processarAgendamento(evento) {
 }
 
 function renderizarAgendamentos() {
-  const lista = $('#listaAgendamentos');
-  mostrarElemento('vazioAgendamentos', agendamentos.length === 0);
-
-  lista.innerHTML = [...agendamentos].reverse().map((a, indiceReverso) => {
-    const indice = agendamentos.length - 1 - indiceReverso;
+  const lista = el('listaAgendamentos');
+  if (!lista) return;
+  mostrar('vazioAgendamentos', agendamentos.length === 0);
+  lista.innerHTML = [...agendamentos].reverse().map((a, iR) => {
+    const i = agendamentos.length - 1 - iR;
     return `
       <li>
         <span class="agendamento-codigo">${a.codigo}</span>
         <strong>${a.servico}</strong> com ${a.profissional}
         <span>${a.data} às ${a.horario} — ${a.nome}</span>
-        <button class="btn-cancelar" data-indice="${indice}">Cancelar agendamento</button>
+        <button class="btn-cancelar" data-indice="${i}">Cancelar agendamento</button>
       </li>
     `;
   }).join('');
-
-  lista.querySelectorAll('.btn-cancelar').forEach((btn) => {
-    btn.addEventListener('click', () => {
-      agendamentos.splice(Number(btn.dataset.indice), 1);
-      gravarLS(CHAVE_AGENDAMENTOS, agendamentos);
-      renderizarAgendamentos();
-      mostrarElemento('confirmacaoAgendamento', false);
-      atualizarHorarios();
-      mostrarToast('Agendamento cancelado.');
-    });
+  bindAll('.btn-cancelar', 'click', (e) => {
+    agendamentos.splice(Number(e.currentTarget.dataset.indice), 1);
+    gravarLS(CHAVE_AGENDAMENTOS, agendamentos);
+    renderizarAgendamentos();
+    mostrar('confirmacaoAgendamento', false);
+    atualizarHorarios();
+    mostrarToast('Agendamento cancelado.');
   });
 }
 
 /* ---------- Pedidos simulados ---------- */
 
 function renderizarPedidos() {
-  const lista = $('#listaPedidos');
-  mostrarElemento('vazioPedidos', pedidos.length === 0);
-  $('#btnLimparPedidos').disabled = pedidos.length === 0;
-
+  const lista = el('listaPedidos');
+  if (!lista) return;
+  mostrar('vazioPedidos', pedidos.length === 0);
+  const bp = el('btnLimparPedidos'); if (bp) bp.disabled = pedidos.length === 0;
   lista.innerHTML = [...pedidos].reverse().map((p) => `
     <li>
       <span class="agendamento-codigo">${p.codigo}</span>
       <strong>${brl.format(p.total)}</strong> — ${p.itens.reduce((s, i) => s + i.qtd, 0)} item(ns)
       <span>${p.itens.map((i) => `${i.qtd}× ${i.nome}`).join(', ')}</span>
-      ${p.cupom ? `<span>Cupom aplicado: ${p.cupom}</span>` : ''}
+      ${p.cupom ? `<span>Cupom: ${p.cupom}</span>` : ''}
       <span>${new Date(p.criadoEm).toLocaleString('pt-BR')}</span>
     </li>
   `).join('');
 }
 
 function limparPedidos() {
-  if (pedidos.length === 0) {
-    mostrarToast('Nenhum pedido no histórico.');
-    return;
-  }
+  if (pedidos.length === 0) { mostrarToast('Nenhum pedido no histórico.'); return; }
   pedidos = [];
   gravarLS(CHAVE_PEDIDOS, pedidos);
   renderizarPedidos();
   mostrarToast('Histórico de pedidos limpo.');
 }
 
-/* ---------- Abas locais ---------- */
+/* ---------- Abas ---------- */
 
-function alternarAba(agendamentosAtiva) {
-  $('#tabAgendamentos').classList.toggle('ativa', agendamentosAtiva);
-  $('#tabAgendamentos').setAttribute('aria-selected', String(agendamentosAtiva));
-  $('#tabPedidos').classList.toggle('ativa', !agendamentosAtiva);
-  $('#tabPedidos').setAttribute('aria-selected', String(!agendamentosAtiva));
-  mostrarElemento('painelAgendamentos', agendamentosAtiva);
-  mostrarElemento('painelPedidos', !agendamentosAtiva);
-}
-
-function configurarAbas() {
-  $('#tabAgendamentos').addEventListener('click', () => alternarAba(true));
-  $('#tabPedidos').addEventListener('click', () => alternarAba(false));
-}
-
-/* ---------- Modais (fechar clicando fora) ---------- */
-
-function configurarModais() {
-  ['#modalPedido', '#modalServico'].forEach((sel) => {
-    $(sel).addEventListener('click', (e) => {
-      if (e.target === $(sel)) fecharOverlay(sel);
-    });
-  });
+function alternarAba(agendaAtiva) {
+  const tA = el('tabAgendamentos'), tP = el('tabPedidos');
+  if (tA) { tA.classList.toggle('ativa', agendaAtiva); tA.setAttribute('aria-selected', String(agendaAtiva)); }
+  if (tP) { tP.classList.toggle('ativa', !agendaAtiva); tP.setAttribute('aria-selected', String(!agendaAtiva)); }
+  mostrar('painelAgendamentos', agendaAtiva);
+  mostrar('painelPedidos', !agendaAtiva);
 }
 
 /* ---------- Inicialização ---------- */
 
 document.addEventListener('DOMContentLoaded', () => {
-  $('#anoAtual').textContent = String(new Date().getFullYear());
+  const ano = el('anoAtual'); if (ano) ano.textContent = String(new Date().getFullYear());
+
+  // MARKETPLACE PRIMEIRO — renderiza antes de qualquer outra configuração
+  filtrarProdutos();
+  renderizarServicos();
+  renderizarEquipe();
 
   registrarServiceWorker();
   configurarMenu();
@@ -669,57 +600,53 @@ document.addEventListener('DOMContentLoaded', () => {
   configurarConexao();
   configurarInstalacao();
   configurarCarrossel();
-  configurarAbas();
-  configurarModais();
 
-  renderizarServicos();
-  renderizarEquipe();
   preencherSelectServicos();
   preencherSelectProfissionais();
   definirDataMinima();
   atualizarHorarios();
 
-  $('#buscaProduto').addEventListener('input', filtrarProdutos);
-  $('#filtroCategoria').addEventListener('change', filtrarProdutos);
-  $('#ordenarProdutos').addEventListener('change', filtrarProdutos);
-  filtrarProdutos();
+  bind('buscaProduto', 'input', filtrarProdutos);
+  bind('filtroCategoria', 'change', filtrarProdutos);
+  bind('ordenarProdutos', 'change', filtrarProdutos);
 
-  $('#btnCarrinho').addEventListener('click', () => abrirFecharCarrinho(true));
-  $('#fecharCarrinho').addEventListener('click', () => abrirFecharCarrinho(false));
+  bind('btnCarrinho', 'click', () => abrirFecharCarrinho(true));
+  bind('fecharCarrinho', 'click', () => abrirFecharCarrinho(false));
+  bind('btnLimparCarrinho', 'click', () => { carrinho = {}; salvarCarrinho(); mostrarToast('Carrinho esvaziado.'); });
+  bind('btnFinalizar', 'click', finalizarPedido);
+  bind('btnCupom', 'click', aplicarCupom);
+  bind('fecharModal', 'click', () => fecharOverlay('modalPedido'));
+  bind('fecharModalServico', 'click', () => fecharOverlay('modalServico'));
+  bind('btnLimparPedidos', 'click', limparPedidos);
+  bind('tabAgendamentos', 'click', () => alternarAba(true));
+  bind('tabPedidos', 'click', () => alternarAba(false));
+
+  ['#modalPedido', '#modalServico'].forEach((sel) => {
+    const m = $(sel);
+    if (m) m.addEventListener('click', (e) => { if (e.target === m) fecharOverlay(sel); });
+  });
+
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') {
       abrirFecharCarrinho(false);
-      fecharOverlay('#modalPedido');
-      fecharOverlay('#modalServico');
+      fecharOverlay('modalPedido');
+      fecharOverlay('modalServico');
     }
   });
 
-  $('#btnLimparCarrinho').addEventListener('click', () => {
-    carrinho = {};
-    salvarCarrinho();
-    mostrarToast('Carrinho esvaziado.');
-  });
-  $('#btnFinalizar').addEventListener('click', finalizarPedido);
-  $('#btnCupom').addEventListener('click', aplicarCupom);
-  $('#btnLimparPedidos').addEventListener('click', limparPedidos);
-  $('#fecharModal').addEventListener('click', () => fecharOverlay('#modalPedido'));
-  $('#fecharModalServico').addEventListener('click', () => fecharOverlay('#modalServico'));
-
-  $('#formAgendamento').addEventListener('submit', processarAgendamento);
+  bind('formAgendamento', 'submit', processarAgendamento);
   ['selServico', 'selProfissional', 'inpData', 'selHorario'].forEach((id) => {
-    $('#' + id).addEventListener('change', () => {
-      marcarInvalido('#' + id, false);
+    bind(id, 'change', () => {
+      marcarInvalido(id, false);
       if (id === 'inpData' || id === 'selProfissional') atualizarHorarios();
       else atualizarResumo();
     });
   });
-  ['#inpNome', '#inpTelefone', '#inpObs'].forEach((id) => {
-    $(id).addEventListener('input', () => marcarInvalido(id, false));
-  });
+  ['inpNome', 'inpTelefone', 'inpObs'].forEach((id) => bind(id, 'input', () => marcarInvalido(id, false)));
 
   renderizarAgendamentos();
   renderizarPedidos();
   renderizarCarrinho();
 
-  console.info('Navalha & Brilho: aplicação iniciada (v5). Dados de demonstração no localStorage.');
+  console.info('Navalha & Brilho: aplicação iniciada (v6).');
 });
