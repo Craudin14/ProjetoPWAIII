@@ -6,11 +6,16 @@
   <meta name="description" content="Navalha & Brilho — barbearia e salão de beleza. Agende serviços e explore produtos. Projeto acadêmico de PWA.">
   <meta name="theme-color" content="#1b1f2a">
   <link rel="manifest" href="manifest.json">
+  <link rel="stylesheet" href="style.css">
   <link rel="icon" href="icon-192.png">
-   <link rel="stylesheet" href="style.css">
   <title>Navalha &amp; Brilho — Barbearia e Salão</title>
 </head>
 <body>
+
+  <!-- BANNER DE CONEXÃO -->
+  <div id="bannerConexao" class="banner-conexao" role="status" hidden>
+    Você está offline. A navegação funciona com os dados em cache; novos agendamentos ficam salvos localmente.
+  </div>
 
   <!-- CABEÇALHO -->
   <header class="cabecalho">
@@ -22,13 +27,18 @@
       <nav id="siteNav" class="navegacao" aria-label="Navegação principal">
         <a href="#inicio">Início</a>
         <a href="#servicos">Serviços</a>
+        <a href="#equipe">Equipe</a>
         <a href="#produtos">Produtos</a>
         <a href="#agendamento">Agendamento</a>
         <a href="#contato">Contato</a>
       </nav>
-      <button id="btnCarrinho" class="btn-carrinho" aria-label="Abrir carrinho de compras">
-        🛒 <span id="badgeCarrinho" class="badge-carrinho">0</span>
-      </button>
+      <div class="acoes-cabecalho">
+        <button id="btnInstalar" class="btn-instalar" hidden>📥 Instalar app</button>
+        <button id="btnTema" class="btn-tema" aria-label="Alternar tema claro e escuro">🌙</button>
+        <button id="btnCarrinho" class="btn-carrinho" aria-label="Abrir carrinho de compras">
+          🛒 <span id="badgeCarrinho" class="badge-carrinho">0</span>
+        </button>
+      </div>
     </div>
   </header>
 
@@ -43,6 +53,11 @@
           <a href="#agendamento" class="btn btn-primario">Agendar um serviço</a>
           <a href="#produtos" class="btn btn-secundario">Explorar produtos</a>
         </div>
+        <ul class="destaque-stats">
+          <li><strong>6</strong> serviços</li>
+          <li><strong>4</strong> profissionais</li>
+          <li><strong>4.9★</strong> avaliação média</li>
+        </ul>
       </div>
     </section>
 
@@ -52,6 +67,28 @@
         <h2>Nossos serviços</h2>
         <p class="secao-sub">Valores e durações de demonstração — edite livremente no arquivo <code>script.js</code>.</p>
         <div id="listaServicos" class="grade grade-servicos"></div>
+      </div>
+    </section>
+
+    <!-- EQUIPE -->
+    <section id="equipe" class="secao secao-alt">
+      <div class="container">
+        <h2>Conheça a equipe</h2>
+        <p class="secao-sub">Profissionais fictícios para fins acadêmicos.</p>
+        <div id="listaEquipe" class="grade grade-equipe"></div>
+      </div>
+    </section>
+
+    <!-- DEPOIMENTOS -->
+    <section id="depoimentos" class="secao">
+      <div class="container container-estreito">
+        <h2>O que dizem os clientes</h2>
+        <div class="carrossel">
+          <button id="depoAnterior" class="btn-carrossel" aria-label="Depoimento anterior">‹</button>
+          <div id="depoContainer" class="depo-conteudo" aria-live="polite"></div>
+          <button id="depoProximo" class="btn-carrossel" aria-label="Próximo depoimento">›</button>
+        </div>
+        <p id="depoIndicador" class="depo-indicador"></p>
       </div>
     </section>
 
@@ -72,6 +109,14 @@
               <option value="acessorios">Acessórios</option>
             </select>
           </label>
+          <label class="rotulo-busca" for="ordenarProdutos">Ordenar por
+            <select id="ordenarProdutos">
+              <option value="relevancia">Relevância</option>
+              <option value="nome">Nome (A–Z)</option>
+              <option value="preco-asc">Menor preço</option>
+              <option value="preco-desc">Maior preço</option>
+            </select>
+          </label>
         </div>
         <div id="gradeProdutos" class="grade grade-produtos"></div>
         <p id="vazioProdutos" class="estado-vazio" hidden>Nenhum produto encontrado com esses filtros. Tente outro termo ou categoria.</p>
@@ -84,6 +129,7 @@
         <div>
           <h2>Agende seu horário</h2>
           <p class="secao-sub">Demonstração sem servidor: os agendamentos ficam salvos apenas no <strong>localStorage</strong> deste navegador.</p>
+
           <form id="formAgendamento" novalidate>
             <p id="erroAgendamento" class="mensagem-erro" role="alert" hidden></p>
 
@@ -96,10 +142,6 @@
             <label for="selProfissional">Profissional *
               <select id="selProfissional" required>
                 <option value="">Selecione um profissional</option>
-                <option value="Ricardo Alves">Ricardo Alves — barbeiro</option>
-                <option value="Marina Costa">Marina Costa — cabeleireira</option>
-                <option value="Bruno Dias">Bruno Dias — barbeiro</option>
-                <option value="Camila Souza">Camila Souza — colorista</option>
               </select>
             </label>
 
@@ -109,10 +151,7 @@
               </label>
               <label for="selHorario">Horário *
                 <select id="selHorario" required>
-                  <option value="">Selecione</option>
-                  <option>09:00</option><option>10:00</option><option>11:00</option>
-                  <option>12:00</option><option>14:00</option><option>15:00</option>
-                  <option>16:00</option><option>17:00</option><option>18:00</option><option>19:00</option>
+                  <option value="">Selecione uma data primeiro</option>
                 </select>
               </label>
             </div>
@@ -130,10 +169,10 @@
               <textarea id="inpObs" rows="3" maxlength="300" placeholder="Ex.: preferência de corte, alergias…"></textarea>
             </label>
 
+            <p id="resumoAgendamento" class="resumo-agendamento" hidden></p>
             <button type="submit" class="btn btn-primario">Confirmar agendamento</button>
           </form>
 
-          <!-- Confirmação -->
           <div id="confirmacaoAgendamento" class="caixa-confirmacao" role="status" hidden>
             <h3>✅ Agendamento registrado (demonstração)</h3>
             <p id="detalheAgendamento"></p>
@@ -142,10 +181,22 @@
         </div>
 
         <aside>
-          <h3>Seus agendamentos salvos</h3>
-          <p class="secao-sub">Consulte ou cancele os registros guardados neste navegador.</p>
-          <ul id="listaAgendamentos" class="lista-agendamentos"></ul>
-          <p id="vazioAgendamentos" class="estado-vazio" hidden>Você ainda não tem agendamentos salvos.</p>
+          <h3>Meus registros locais</h3>
+          <div class="abas" role="tablist">
+            <button id="tabAgendamentos" class="aba ativa" role="tab" aria-selected="true">Agendamentos</button>
+            <button id="tabPedidos" class="aba" role="tab" aria-selected="false">Pedidos</button>
+          </div>
+
+          <div id="painelAgendamentos" role="tabpanel">
+            <ul id="listaAgendamentos" class="lista-agendamentos"></ul>
+            <p id="vazioAgendamentos" class="estado-vazio" hidden>Você ainda não tem agendamentos salvos.</p>
+          </div>
+
+          <div id="painelPedidos" role="tabpanel" hidden>
+            <ul id="listaPedidos" class="lista-agendamentos"></ul>
+            <p id="vazioPedidos" class="estado-vazio" hidden>Nenhum pedido simulado registrado.</p>
+            <button id="btnLimparPedidos" class="btn-cancelar">Limpar histórico de pedidos</button>
+          </div>
         </aside>
       </div>
     </section>
@@ -184,6 +235,7 @@
         <h3>Navegação</h3>
         <a href="#inicio">Início</a>
         <a href="#servicos">Serviços</a>
+        <a href="#equipe">Equipe</a>
         <a href="#produtos">Produtos</a>
         <a href="#agendamento">Agendamento</a>
         <a href="#contato">Contato</a>
@@ -205,7 +257,16 @@
     <ul id="itensCarrinho" class="itens-carrinho"></ul>
     <p id="vazioCarrinho" class="estado-vazio">Seu carrinho está vazio. Explore os produtos!</p>
     <div class="painel-rodape">
+      <div class="linha-cupom">
+        <label class="rotulo-cupom" for="inpCupom">Cupom
+          <input type="text" id="inpCupom" placeholder="Ex.: BEMVINDO10" autocomplete="off">
+        </label>
+        <button id="btnCupom" class="btn btn-secundario btn-cupom">Aplicar</button>
+      </div>
+      <p id="linhaCupom" class="linha-cupom-info" hidden></p>
       <p class="subtotal">Subtotal: <strong id="subtotal">R$ 0,00</strong></p>
+      <p class="subtotal" id="linhaDesconto" hidden>Desconto: <strong id="valorDesconto" class="valor-desconto"></strong></p>
+      <p class="subtotal total">Total: <strong id="valorTotal">R$ 0,00</strong></p>
       <div class="painel-acoes">
         <button id="btnLimparCarrinho" class="btn btn-secundario">Limpar carrinho</button>
         <button id="btnFinalizar" class="btn btn-primario">Finalizar pedido</button>
@@ -218,8 +279,18 @@
     <div class="modal-caixa">
       <h2 id="tituloModal">Pedido registrado (demonstração)</h2>
       <p>Pedido simulado <strong id="codigoPedido">PED-0000</strong> criado localmente.</p>
+      <p id="resumoPedido"></p>
       <p class="nota-demo">Este é um fluxo demonstrativo: <strong>nenhuma compra foi processada e nenhum pagamento foi feito</strong>.</p>
       <button id="fecharModal" class="btn btn-primario">Entendi</button>
+    </div>
+  </div>
+
+  <!-- MODAL DE DETALHES DO SERVIÇO -->
+  <div id="modalServico" class="modal" role="dialog" aria-modal="true" aria-labelledby="tituloModalServico" hidden>
+    <div class="modal-caixa">
+      <h2 id="tituloModalServico"></h2>
+      <div id="corpoModalServico"></div>
+      <button id="fecharModalServico" class="btn btn-primario">Fechar</button>
     </div>
   </div>
 
