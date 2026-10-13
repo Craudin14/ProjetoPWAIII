@@ -9,4 +9,27 @@
     body {
       font-family: system-ui, sans-serif;
       background: #f6f1e7; color: #23262e;
-      min-height: 100vh; display: flex;
+      min-height: 100vh; margin: 0;
+      display: flex; align-items: center; justify-content: center;
+      text-align: center; padding: 1rem;
+    }
+    .caixa { max-width: 28rem; }
+    h1 { color: #1b1f2a; }
+    p { color: #5c6068; line-height: 1.6; }
+    a {
+      display: inline-block; margin-top: 1rem;
+      background: #c99a3c; color: #1b1f2a; font-weight: 700;
+      padding: 0.7rem 1.4rem; border-radius: 12px; text-decoration: none;
+    }
+    a:hover { background: #a37b28; }
+  </style>
+</head>
+<body>
+  <main class="caixa">
+    <p style="font-size: 3rem" aria-hidden="true">📡</p>
+    <h1>Você está offline</h1>
+    <p>Não foi possível carregar esta página porque não há conexão com a internet. Assim que a conexão voltar, tente novamente.</p>
+    <a href="./index.html">Tentar abrir o site</a>
+  </main>
+</body>
+</html>
