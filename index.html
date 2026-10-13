@@ -12,12 +12,10 @@
 </head>
 <body>
 
-  <!-- BANNER DE CONEXÃO -->
-  <div id="bannerConexao" class="banner-conexao" role="status" hidden>
+  <div id="bannerConexao" class="banner-conexao" style="display:none" role="status">
     Você está offline. A navegação funciona com os dados em cache; novos agendamentos ficam salvos localmente.
   </div>
 
-  <!-- CABEÇALHO -->
   <header class="cabecalho">
     <div class="container cabecalho-interno">
       <a href="#inicio" class="logo" aria-label="Navalha e Brilho, página inicial">
@@ -33,7 +31,7 @@
         <a href="#contato">Contato</a>
       </nav>
       <div class="acoes-cabecalho">
-        <button id="btnInstalar" class="btn-instalar" hidden>📥 Instalar app</button>
+        <button id="btnInstalar" class="btn-instalar" style="display:none">📥 Instalar app</button>
         <button id="btnTema" class="btn-tema" aria-label="Alternar tema claro e escuro">🌙</button>
         <button id="btnCarrinho" class="btn-carrinho" aria-label="Abrir carrinho de compras">
           🛒 <span id="badgeCarrinho" class="badge-carrinho">0</span>
@@ -43,7 +41,6 @@
   </header>
 
   <main>
-    <!-- DESTAQUE -->
     <section id="inicio" class="destaque">
       <div class="container">
         <p class="destaque-tag">Barbearia &amp; Salão</p>
@@ -61,7 +58,6 @@
       </div>
     </section>
 
-    <!-- SERVIÇOS -->
     <section id="servicos" class="secao">
       <div class="container">
         <h2>Nossos serviços</h2>
@@ -70,7 +66,6 @@
       </div>
     </section>
 
-    <!-- EQUIPE -->
     <section id="equipe" class="secao secao-alt">
       <div class="container">
         <h2>Conheça a equipe</h2>
@@ -79,7 +74,6 @@
       </div>
     </section>
 
-    <!-- DEPOIMENTOS -->
     <section id="depoimentos" class="secao">
       <div class="container container-estreito">
         <h2>O que dizem os clientes</h2>
@@ -92,7 +86,6 @@
       </div>
     </section>
 
-    <!-- PRODUTOS -->
     <section id="produtos" class="secao secao-alt">
       <div class="container">
         <h2>Mini marketplace</h2>
@@ -119,11 +112,10 @@
           </label>
         </div>
         <div id="gradeProdutos" class="grade grade-produtos"></div>
-        <p id="vazioProdutos" class="estado-vazio" hidden>Nenhum produto encontrado com esses filtros. Tente outro termo ou categoria.</p>
+        <p id="vazioProdutos" class="estado-vazio" style="display:none">Nenhum produto encontrado com esses filtros. Tente outro termo ou categoria.</p>
       </div>
     </section>
 
-    <!-- AGENDAMENTO -->
     <section id="agendamento" class="secao">
       <div class="container grade-agendamento">
         <div>
@@ -131,7 +123,7 @@
           <p class="secao-sub">Demonstração sem servidor: os agendamentos ficam salvos apenas no <strong>localStorage</strong> deste navegador.</p>
 
           <form id="formAgendamento" novalidate>
-            <p id="erroAgendamento" class="mensagem-erro" role="alert" hidden></p>
+            <p id="erroAgendamento" class="mensagem-erro" style="display:none" role="alert"></p>
 
             <label for="selServico">Serviço *
               <select id="selServico" required>
@@ -169,11 +161,11 @@
               <textarea id="inpObs" rows="3" maxlength="300" placeholder="Ex.: preferência de corte, alergias…"></textarea>
             </label>
 
-            <p id="resumoAgendamento" class="resumo-agendamento" hidden></p>
+            <p id="resumoAgendamento" class="resumo-agendamento" style="display:none"></p>
             <button type="submit" class="btn btn-primario">Confirmar agendamento</button>
           </form>
 
-          <div id="confirmacaoAgendamento" class="caixa-confirmacao" role="status" hidden>
+          <div id="confirmacaoAgendamento" class="caixa-confirmacao" style="display:none" role="status">
             <h3>✅ Agendamento registrado (demonstração)</h3>
             <p id="detalheAgendamento"></p>
             <p class="nota-demo">Este agendamento <strong>não foi enviado a nenhum servidor</strong> — está salvo apenas neste navegador.</p>
@@ -189,19 +181,18 @@
 
           <div id="painelAgendamentos" role="tabpanel">
             <ul id="listaAgendamentos" class="lista-agendamentos"></ul>
-            <p id="vazioAgendamentos" class="estado-vazio" hidden>Você ainda não tem agendamentos salvos.</p>
+            <p id="vazioAgendamentos" class="estado-vazio" style="display:none">Você ainda não tem agendamentos salvos.</p>
           </div>
 
-          <div id="painelPedidos" role="tabpanel" hidden>
+          <div id="painelPedidos" role="tabpanel" style="display:none">
             <ul id="listaPedidos" class="lista-agendamentos"></ul>
-            <p id="vazioPedidos" class="estado-vazio" hidden>Nenhum pedido simulado registrado.</p>
+            <p id="vazioPedidos" class="estado-vazio" style="display:none">Nenhum pedido simulado registrado.</p>
             <button id="btnLimparPedidos" class="btn-cancelar">Limpar histórico de pedidos</button>
           </div>
         </aside>
       </div>
     </section>
 
-    <!-- CONTATO -->
     <section id="contato" class="secao secao-alt">
       <div class="container">
         <h2>Contato e horários</h2>
@@ -224,7 +215,6 @@
     </section>
   </main>
 
-  <!-- RODAPÉ -->
   <footer class="rodape">
     <div class="container grade-rodape">
       <div>
@@ -248,8 +238,8 @@
     <p class="rodape-final">© <span id="anoAtual">2026</span> Navalha &amp; Brilho — trabalho acadêmico.</p>
   </footer>
 
-  <!-- PAINEL DO CARRINHO -->
-  <aside id="painelCarrinho" class="painel-carrinho" aria-label="Carrinho de compras" hidden>
+  <!-- Todos os overlays começam com display:none INLINE — imunes a CSS em cache -->
+  <aside id="painelCarrinho" class="painel-carrinho" aria-label="Carrinho de compras" style="display:none">
     <div class="painel-cabecalho">
       <h2>Seu carrinho</h2>
       <button id="fecharCarrinho" class="btn-fechar" aria-label="Fechar carrinho">✕</button>
@@ -263,9 +253,9 @@
         </label>
         <button id="btnCupom" class="btn btn-secundario btn-cupom">Aplicar</button>
       </div>
-      <p id="linhaCupom" class="linha-cupom-info" hidden></p>
+      <p id="linhaCupom" class="linha-cupom-info" style="display:none"></p>
       <p class="subtotal">Subtotal: <strong id="subtotal">R$ 0,00</strong></p>
-      <p class="subtotal" id="linhaDesconto" hidden>Desconto: <strong id="valorDesconto" class="valor-desconto"></strong></p>
+      <p class="subtotal" id="linhaDesconto" style="display:none">Desconto: <strong id="valorDesconto" class="valor-desconto"></strong></p>
       <p class="subtotal total">Total: <strong id="valorTotal">R$ 0,00</strong></p>
       <div class="painel-acoes">
         <button id="btnLimparCarrinho" class="btn btn-secundario">Limpar carrinho</button>
@@ -274,8 +264,7 @@
     </div>
   </aside>
 
-  <!-- MODAL DE PEDIDO SIMULADO -->
-  <div id="modalPedido" class="modal" role="dialog" aria-modal="true" aria-labelledby="tituloModal" hidden>
+  <div id="modalPedido" class="modal" role="dialog" aria-modal="true" aria-labelledby="tituloModal" style="display:none">
     <div class="modal-caixa">
       <h2 id="tituloModal">Pedido registrado (demonstração)</h2>
       <p>Pedido simulado <strong id="codigoPedido">PED-0000</strong> criado localmente.</p>
@@ -285,8 +274,7 @@
     </div>
   </div>
 
-  <!-- MODAL DE DETALHES DO SERVIÇO -->
-  <div id="modalServico" class="modal" role="dialog" aria-modal="true" aria-labelledby="tituloModalServico" hidden>
+  <div id="modalServico" class="modal" role="dialog" aria-modal="true" aria-labelledby="tituloModalServico" style="display:none">
     <div class="modal-caixa">
       <h2 id="tituloModalServico"></h2>
       <div id="corpoModalServico"></div>
@@ -294,8 +282,7 @@
     </div>
   </div>
 
-  <!-- TOAST -->
-  <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+  <div id="toast" class="toast" role="status" aria-live="polite" style="display:none"></div>
 
   <script src="script.js"></script>
 </body>
